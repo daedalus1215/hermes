@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from pathlib import Path
 from kokoro import KPipeline
@@ -43,6 +44,18 @@ async def convert_text_to_audio(request: TextToAudioRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/download/{user_id}/{asset_id}")
+async def download_audio(user_id: str, asset_id: str):
+    file_path = AUDIO_BASE_DIR / user_id / asset_id / "audio.wav"
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    
+    return FileResponse(
+        path=str(file_path),
+        media_type="audio/wav",
+        filename=f"{asset_id}.wav"
+    )
 
 if __name__ == "__main__":
     import uvicorn
