@@ -1,3 +1,4 @@
 **/.venv/*
 **/audio/*.wav
 combined.wav
+generated_audio/*
