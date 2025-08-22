@@ -6,6 +6,11 @@ import wave
 from pathlib import Path
 from typing import List
 
+# Constants for file paths
+INPUT_FOLDER = 'hermes-text-to-audio-out'
+OUTPUT_FOLDER = 'hermes-combine-audio-out'
+DEFAULT_OUTPUT_FILE = 'combined.wav'
+
 NUM_RE = re.compile(r"(\d+)")
 
 def numeric_key(p: Path):
@@ -64,10 +69,11 @@ def concat_wavs(input_dir: Path, output_file: Path, chunk_frames: int = 64_000):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Concatenate WAV files seamlessly.")
-    parser.add_argument("--input-dir", "-i", default="audio", type=Path,
-                        help="Directory containing input .wav files (default: ./audio)")
-    parser.add_argument("--output", "-o", default="combined.wav", type=Path,
-                        help="Output WAV file path (default: combined.wav)")
+    parser.add_argument("--input-dir", "-i", default=INPUT_FOLDER, type=Path,
+                        help=f"Directory containing input .wav files (default: ./{INPUT_FOLDER})")
+    parser.add_argument("--output", "-o", 
+                        default=Path(OUTPUT_FOLDER) / DEFAULT_OUTPUT_FILE, type=Path,
+                        help=f"Output WAV file path (default: {OUTPUT_FOLDER}/{DEFAULT_OUTPUT_FILE})")
     args = parser.parse_args()
 
     concat_wavs(args.input_dir, args.output)

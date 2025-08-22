@@ -2,3 +2,5 @@
 **/audio/*.wav
 combined.wav
 generated_audio/*
+hermes-combine-audio-out
+hermes-text-to-audio-out

@@ -3,23 +3,22 @@ from kokoro import KPipeline
 from IPython.display import display, Audio
 import soundfile as sf
 import torch
-import argparse
 import shutil
-
 import os
 import glob
 
-parser = argparse.ArgumentParser(description="Generate audio from text file.")
-parser.add_argument("filepath", type=str, help="Path to the text file")
-args = parser.parse_args()
+# Constants for file paths
+INPUT_FOLDER = os.path.join('..', 'clio-out')  # Go up one directory
+INPUT_FILE = 'extracted_text.txt'
+INPUT_PATH = os.path.join(INPUT_FOLDER, INPUT_FILE)
+OUTPUT_FOLDER = 'hermes-text-to-audio-out'
 
-# Clear the audio folder before generating new files
-audio_folder = 'audio'
-if os.path.exists(audio_folder):
-    shutil.rmtree(audio_folder)
-os.makedirs(audio_folder)
+# Clear the output folder before generating new files
+if os.path.exists(OUTPUT_FOLDER):
+    shutil.rmtree(OUTPUT_FOLDER)
+os.makedirs(OUTPUT_FOLDER)
 
-with open(args.filepath, 'r', encoding='utf-8') as f:
+with open(INPUT_PATH, 'r', encoding='utf-8') as f:
     text = f.read()
 
 pipeline = KPipeline(lang_code='a')
@@ -27,4 +26,4 @@ generator = pipeline(text, voice='af_heart')
 for i, (gs, ps, audio) in enumerate(generator):
     print(i, gs, ps)
     display(Audio(data=audio, rate=24000, autoplay=i==0))
-    sf.write(f'audio/{i}.wav', audio, 24000)
+    sf.write(os.path.join(OUTPUT_FOLDER, f'{i}.wav'), audio, 24000)
