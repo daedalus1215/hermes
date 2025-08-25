@@ -3,7 +3,7 @@ from app.infrastructure.repositories.write import (
     WriteAudioFilesRepository,
     CombineWavFilesRepository,
 )
-from app.shared import get_user_path_for_asset
+from app.shared.get_user_path_for_asset import get_user_path_for_asset, COMBINED_WAV
 
 
 class CreateAudioFromTextTransactionScript:
@@ -18,7 +18,7 @@ class CreateAudioFromTextTransactionScript:
         self.combineWavFilesRepository = combineWavFilesRepository
         self.process_folder = Path(process_folder)
 
-    async def execute(self, user_id: int, asset_id: int, text: str) -> Path:
+    async def execute(self, user_id: str, asset_id: str, text: str) -> Path:
         """
         Create audio files from the given text and save them to the output folder.
 
@@ -35,17 +35,32 @@ class CreateAudioFromTextTransactionScript:
             process_folder/user_id/asset_id/
             And returns the path to combined.wav within that folder
         """
-        path = get_user_path_for_asset(self.process_folder, user_id, asset_id)
-        path.mkdir(parents=True, exist_ok=True)
 
-        # Delete existing files if any
-        await self.writeAudioFilesRepository.delete_files_in_folder(path)
+        try:
+            # Ensure process_folder is a Path
+            if not isinstance(self.process_folder, Path):
+                self.process_folder = Path(self.process_folder)
 
-        # Generate individual audio files
-        await self.writeAudioFilesRepository.write_audio_files_repository(text, path)
+            # Get the path for this user/asset
+            path = get_user_path_for_asset(self.process_folder, str(user_id), str(asset_id))
+            
+            # Ensure the path exists
+            path.mkdir(parents=True, exist_ok=True)
+            
+            # Delete existing files if any
+            await self.writeAudioFilesRepository.delete_files_in_folder(path)
+            
+            # Generate individual audio files
+            await self.writeAudioFilesRepository.write_audio_files_repository(text, path)
 
-        # Combine all generated files into one
-        combined_path = path / "combined.wav"
-        await self.combineWavFilesRepository.combine_wav_files(path, combined_path)
+            # Combine all generated files into one
+            combined_path = path / COMBINED_WAV
+            await self.combineWavFilesRepository.combine_wav_files(path, combined_path)
 
-        return combined_path
+            return combined_path
+        except Exception as e:
+            print(f"Error in execute method: {str(e)}")
+            print(f"Process folder type: {type(self.process_folder)}")
+            print(f"Process folder value: {self.process_folder}")
+            print(f"User ID type: {type(user_id)}, Asset ID type: {type(asset_id)}")
+            raise

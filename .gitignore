@@ -5,3 +5,4 @@ generated_audio/*
 hermes-combine-audio-out
 hermes-text-to-audio-out
 app/configs/config.yaml
+__pycache__/

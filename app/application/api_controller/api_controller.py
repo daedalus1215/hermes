@@ -28,11 +28,11 @@ class TextToAudioResponse(BaseModel):
 @app.post("/text-to-speech", response_model=TextToAudioResponse)
 async def convert_text_to_audio(request: TextToAudioRequest):
     try:
-        script = CreateAudioFromTextTransactionScriptFactory.create()
+        script = CreateAudioFromTextTransactionScriptFactory().create()  # Instantiate the factory first
         output_path = await script.execute(
-            user_id=int(request.userId),
-            asset_id=int(request.assetId),
-            text=request.text
+            user_id=str(request.userId),  # Ensure these are strings
+            asset_id=str(request.assetId),
+            text=str(request.text)
         )
         return TextToAudioResponse(file_path=str(output_path))
 
