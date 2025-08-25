@@ -3,7 +3,7 @@ import asyncio
 import shutil
 from pathlib import Path
 from typing import Union
-from kokoro import KPipeline
+from kokoro.pipeline import KPipeline
 import soundfile as sf
 
 
@@ -21,12 +21,16 @@ class WriteAudioFilesRepository:
         """
         path = Path(path)
         
-        # Convert synchronous generator to async operation
-        def run_pipeline():
-            return list(self._pipeline(text, voice="af_heart"))
-            
-        # Run the pipeline in a thread pool to avoid blocking
-        results = await asyncio.to_thread(run_pipeline)
+        try:
+            # Convert synchronous generator to async operation
+            def run_pipeline():
+                return list(self._pipeline(text, voice="af_heart"))
+                
+            # Run the pipeline in a thread pool to avoid blocking
+            results = await asyncio.to_thread(run_pipeline)
+        except Exception as e:
+            print(f"WriteAudioFilesRepository ERROR: {str(e)}")
+            raise
         
         # Save files
         for i, (gs, ps, audio) in enumerate(results):

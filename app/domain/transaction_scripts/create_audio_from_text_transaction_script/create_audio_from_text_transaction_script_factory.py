@@ -11,8 +11,13 @@ class CreateAudioFromTextTransactionScriptFactory:
         process_folder = (
             CreateAudioFromTextTransactionScriptFactory.config.process_folder
         )
-        return CreateAudioFromTextTransactionScript(
-            writeAudioFilesRepository=WriteAudioFilesRepository(),
-            combineWavFilesRepository=CombineWavFilesRepository(),
+        write_repo = WriteAudioFilesRepository()
+        combine_repo = CombineWavFilesRepository()
+        
+        script = CreateAudioFromTextTransactionScript(
+            writeAudioFilesRepository=write_repo,
+            combineWavFilesRepository=combine_repo,
             process_folder=process_folder
         )
+
+        return script
