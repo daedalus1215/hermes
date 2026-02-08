@@ -40,7 +40,11 @@ async def convert_text_to_audio(request: TextToAudioRequest):
             asset_id=str(request.assetId),
             text=str(request.text),
         )
-        return TextToAudioResponse(file_path=str(output_path), file_name=file_name)
+        absolute_path = output_path.resolve()
+        return TextToAudioResponse(
+            file_path=str(absolute_path),
+            file_name=file_name,
+        )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
