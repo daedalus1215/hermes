@@ -43,15 +43,14 @@ class CombineWavFilesRepository:
         )
 
     async def combine_wav_files(
-        self, input_dir: Union[str, Path], output_file: Union[str, Path] = None
+        self, input_dir: Union[str, Path], output_file: Union[str, Path]
     ) -> Path:
         """
         Combine all WAV files in the input directory into a single WAV file.
 
         Args:
             input_dir: Directory containing the WAV files to combine
-            output_file: Optional output file path. If not provided, will create
-                        'combined.wav' in the input directory.
+            output_file: Output file path for the combined audio.
 
         Returns:
             Path: The path to the combined WAV file
@@ -60,8 +59,6 @@ class CombineWavFilesRepository:
             ValueError: If no WAV files are found or if WAV files are incompatible
         """
         input_dir = Path(input_dir)
-        if output_file is None:
-            output_file = input_dir / "combined.wav"
         output_file = Path(output_file)
 
         # Get sorted wav files
@@ -98,5 +95,5 @@ class CombineWavFilesRepository:
         result = await asyncio.to_thread(lambda: process_wavs())
         if asyncio.iscoroutine(result):
             result = await result
-        
+
         return result
