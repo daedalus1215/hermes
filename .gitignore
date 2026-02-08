@@ -5,7 +5,7 @@ generated_audio/*
 hermes-combine-audio-out
 hermes-text-to-audio-out
 app/configs/config.yaml
-**/__pycache__/
+**/__pycache__/**
 **/*.pyc
 **/*.pyo
 **/*.pyd
@@ -54,3 +54,5 @@ app/configs/config.yaml
 **/.pyre/
 **/.pytype/
 **/cython_debug/
+**/__pycache__*/
+**/*.pyc
