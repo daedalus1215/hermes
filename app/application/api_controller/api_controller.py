@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -7,6 +8,8 @@ from app.domain.transaction_scripts.create_audio_from_text_transaction_script im
     CreateAudioFromTextTransactionScriptFactory,
 )
 from app.shared.path_utils import get_user_path_for_asset, COMBINED_WAV
+from app.infrastructure.tts_pipeline_manager import get_tts_pipeline_manager
+from app.infrastructure.monitoring_middleware import PerformanceMonitoringMiddleware
 
 config = ApiConfig()
 app = FastAPI(
@@ -16,8 +19,15 @@ app = FastAPI(
     root_path=config.base_url,
 )
 
+# Add performance monitoring middleware
+app.add_middleware(PerformanceMonitoringMiddleware)
+
 # Base directory for audio files from config
 AUDIO_BASE_DIR = Path(config.audio_base_dir)
+
+# Semaphore to limit TTS processing to 1 concurrent request
+# This prevents GPU/CPU contention and ensures sequential processing
+_tts_semaphore = asyncio.Semaphore(1)
 
 
 class TextToAudioRequest(BaseModel):
@@ -33,18 +43,26 @@ class TextToAudioResponse(BaseModel):
 
 @app.post("/text-to-speech", response_model=TextToAudioResponse)
 async def convert_text_to_audio(request: TextToAudioRequest):
+    """
+    Convert text to speech audio.
+
+    Requests are processed sequentially to avoid GPU/CPU contention.
+    Additional requests will queue and wait for the current one to complete.
+    """
     try:
-        script = CreateAudioFromTextTransactionScriptFactory().create()
-        output_path, file_name = await script.execute(
-            user_id=str(request.userId),
-            asset_id=str(request.assetId),
-            text=str(request.text),
-        )
-        absolute_path = output_path.resolve()
-        return TextToAudioResponse(
-            file_path=str(absolute_path),
-            file_name=file_name,
-        )
+        # Acquire semaphore to ensure sequential processing
+        async with _tts_semaphore:
+            script = CreateAudioFromTextTransactionScriptFactory().create()
+            output_path, file_name = await script.execute(
+                user_id=str(request.userId),
+                asset_id=str(request.assetId),
+                text=str(request.text),
+            )
+            absolute_path = output_path.resolve()
+            return TextToAudioResponse(
+                file_path=str(absolute_path),
+                file_name=file_name,
+            )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -99,6 +117,35 @@ async def download_audio_by_path(
         media_type="audio/wav",
         filename=requested_path.name,
     )
+
+
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint that reports system status.
+
+    Returns:
+        JSON with health status, TTS model status, and queue information.
+    """
+    from app.infrastructure.monitoring_middleware import get_current_memory_usage
+
+    tts_manager = get_tts_pipeline_manager()
+    memory_stats = get_current_memory_usage()
+
+    return {
+        "status": "healthy",
+        "tts_model": {
+            "loaded": tts_manager.is_loaded,
+            "idle_time_seconds": tts_manager.idle_time
+            if tts_manager.is_loaded
+            else None,
+        },
+        "queue": {
+            "concurrent_limit": 1,
+            "current_waiters": _tts_semaphore._value,
+        },
+        "memory": memory_stats,
+    }
 
 
 if __name__ == "__main__":

@@ -64,7 +64,8 @@ class CombineWavFilesRepository:
         # Get sorted wav files
         wavs = await self._find_wavs_sorted(input_dir)
 
-        async def process_wavs():
+        def process_wavs():
+            """Synchronous function to process WAV files in thread pool."""
             # Open first as reference
             with wave.open(str(wavs[0]), "rb") as ref:
                 ref_params = ref.getparams()
@@ -92,8 +93,4 @@ class CombineWavFilesRepository:
             return output_file
 
         # Run the wave processing in a thread pool since it's I/O bound
-        result = await asyncio.to_thread(lambda: process_wavs())
-        if asyncio.iscoroutine(result):
-            result = await result
-
-        return result
+        return await asyncio.to_thread(process_wavs)
