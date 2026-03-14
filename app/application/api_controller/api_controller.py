@@ -119,6 +119,34 @@ async def download_audio_by_path(
     )
 
 
+@app.delete("/delete-by-path")
+async def delete_audio_by_path(
+    file_path: str = Query(
+        ...,
+        description="Absolute path to the audio file to delete. Must be within the process folder parent directory.",
+    ),
+):
+    """Delete an audio file by its absolute path."""
+    process_folder = CreateAudioFromTextTransactionScriptFactory.config.process_folder
+    process_parent = Path(process_folder).resolve().parent
+    requested_path = Path(file_path).resolve()
+    try:
+        requested_path.relative_to(process_parent)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid file path")
+    if not requested_path.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    requested_path.unlink()
+    parent_dir = requested_path.parent
+    try:
+        if parent_dir != process_parent and not any(parent_dir.iterdir()):
+            parent_dir.rmdir()
+    except OSError:
+        pass
+    return {"detail": "Audio file deleted successfully"}
+
+
+
 @app.get("/health")
 async def health_check():
     """
