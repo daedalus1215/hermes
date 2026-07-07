@@ -56,3 +56,4 @@ app/configs/config.yaml
 **/cython_debug/
 **/__pycache__*/
 **/*.pyc
+**/*.wav

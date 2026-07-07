@@ -7,6 +7,13 @@ from app.configs.api_config import ApiConfig
 from app.domain.transaction_scripts.create_audio_from_text_transaction_script import (
     CreateAudioFromTextTransactionScriptFactory,
 )
+from app.domain.transaction_scripts.move_note_audio_transaction_script import (
+    MoveNoteAudioTransactionScriptFactory,
+)
+from app.domain.services import MoveNoteAudioService
+from app.application.api_controller.actions.move_asset_audio.move_asset_audio_action import (
+    create_router as create_move_asset_audio_router,
+)
 from app.shared.path_utils import get_user_path_for_asset, COMBINED_WAV
 from app.infrastructure.tts_pipeline_manager import get_tts_pipeline_manager
 from app.infrastructure.monitoring_middleware import PerformanceMonitoringMiddleware
@@ -28,6 +35,11 @@ AUDIO_BASE_DIR = Path(config.audio_base_dir)
 # Semaphore to limit TTS processing to 1 concurrent request
 # This prevents GPU/CPU contention and ensures sequential processing
 _tts_semaphore = asyncio.Semaphore(1)
+
+# Wire Action routers — instantiate TS + Service, register router
+move_note_audio_ts = MoveNoteAudioTransactionScriptFactory().create()
+move_note_audio_service = MoveNoteAudioService(ts=move_note_audio_ts)
+app.include_router(create_move_asset_audio_router(move_note_audio_service))
 
 
 class TextToAudioRequest(BaseModel):
@@ -144,7 +156,6 @@ async def delete_audio_by_path(
     except OSError:
         pass
     return {"detail": "Audio file deleted successfully"}
-
 
 
 @app.get("/health")

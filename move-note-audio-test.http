@@ -1,0 +1,68 @@
+# Move Note Audio - Test File
+# Run with: httpie or VS Code REST Client
+# Server: http://localhost:8000/api/v1
+
+### 1. Health check - verify server is up
+GET http://localhost:8000/api/v1/health
+
+### 2. Basic move - move audio from asset 100 to asset 200
+# Precondition: create test audio in ../resources/hermes-process/test-user/100/
+POST http://localhost:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "100",
+  "target_asset_id": "200"
+}
+
+### 3. Idempotent empty move - source is now empty
+POST http://localhost:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "100",
+  "target_asset_id": "200"
+}
+
+### 4. Self-move - should return 400
+POST http://localhost:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "200",
+  "target_asset_id": "200"
+}
+
+### 5. Path traversal - should return 400
+POST http://localhost:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "../../etc",
+  "target_asset_id": "200"
+}
+
+### 6. Missing source - should return empty result
+POST http://localhost:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "999",
+  "target_asset_id": "200"
+}
+
+### 7. Collision test - move from asset 300 (same filename as in 200)
+# Precondition: create ../resources/hermes-process/test-user/300/ with same filename as in 200
+POST http://localhost:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "300",
+  "target_asset_id": "200"
+}
