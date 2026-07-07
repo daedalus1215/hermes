@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union
 from app.infrastructure.tts_pipeline_manager import get_tts_pipeline_manager
 from app.infrastructure.buffered_audio_writer import BufferedAudioWriter
+from app.shared.path_utils import generate_timestamped_filename
 
 
 class WriteAudioFilesRepository:
@@ -76,3 +77,60 @@ class WriteAudioFilesRepository:
         if path.exists():
             await asyncio.to_thread(shutil.rmtree, path)
         await asyncio.to_thread(os.makedirs, path)
+
+    async def move_asset_files(
+        self, source_dir: Union[str, Path], target_dir: Union[str, Path]
+    ) -> list[dict]:
+        """
+        Move all audio files from source_dir to target_dir.
+
+        - Renames on collision (never overwrites)
+        - Returns a list of dicts with source_path, file_path, file_name
+        - Removes source_dir if now empty
+
+        Args:
+            source_dir: Source asset directory
+            target_dir: Target asset directory
+
+        Returns:
+            List of dicts with move results
+        """
+        source_dir = Path(source_dir)
+        target_dir = Path(target_dir)
+
+        # Ensure target exists
+        await asyncio.to_thread(os.makedirs, target_dir, exist_ok=True)
+
+        if not source_dir.exists() or not any(source_dir.iterdir()):
+            return []
+
+        moved = []
+
+        def do_moves():
+            for src_file in source_dir.iterdir():
+                if not src_file.is_file():
+                    continue
+                dest_name = src_file.name
+                dest_path = target_dir / dest_name
+                # On collision, generate a fresh timestamped name
+                if dest_path.exists():
+                    dest_name = generate_timestamped_filename()
+                    dest_path = target_dir / dest_name
+                shutil.move(str(src_file), str(dest_path))
+                moved.append(
+                    {
+                        "source_path": str(src_file.resolve()),
+                        "file_path": str(dest_path.resolve()),
+                        "file_name": dest_name,
+                    }
+                )
+
+            # Clean up empty source directory
+            try:
+                if not any(source_dir.iterdir()):
+                    source_dir.rmdir()
+            except OSError:
+                pass
+
+        await asyncio.to_thread(do_moves)
+        return moved

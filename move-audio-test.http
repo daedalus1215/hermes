@@ -1,0 +1,32 @@
+### Basic move (source→target)
+POST http://127.0.0.1:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "100",
+  "target_asset_id": "200"
+}
+
+### Self-move (should return 400)
+POST http://127.0.0.1:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "200",
+  "target_asset_id": "200"
+}
+
+### Empty source (should return {moved: [], count: 0})
+POST http://127.0.0.1:8000/api/v1/move-asset-audio
+Content-Type: application/json
+
+{
+  "user_id": "test-user",
+  "source_asset_id": "100",
+  "target_asset_id": "200"
+}
+
+### Health check
+GET http://127.0.0.1:8000/api/v1/health

@@ -7,6 +7,9 @@ from app.configs.api_config import ApiConfig
 from app.domain.transaction_scripts.create_audio_from_text_transaction_script import (
     CreateAudioFromTextTransactionScriptFactory,
 )
+from app.domain.transaction_scripts.move_note_audio_transaction_script import (
+    MoveNoteAudioTransactionScriptFactory,
+)
 from app.shared.path_utils import get_user_path_for_asset, COMBINED_WAV
 from app.infrastructure.tts_pipeline_manager import get_tts_pipeline_manager
 from app.infrastructure.monitoring_middleware import PerformanceMonitoringMiddleware
@@ -39,6 +42,23 @@ class TextToAudioRequest(BaseModel):
 class TextToAudioResponse(BaseModel):
     file_path: str
     file_name: str
+
+
+class MoveAssetAudioRequest(BaseModel):
+    user_id: str
+    source_asset_id: str
+    target_asset_id: str
+
+
+class MovedFile(BaseModel):
+    source_path: str
+    file_path: str
+    file_name: str
+
+
+class MoveAssetAudioResponse(BaseModel):
+    moved: list[MovedFile]
+    count: int
 
 
 @app.post("/text-to-speech", response_model=TextToAudioResponse)
@@ -145,6 +165,32 @@ async def delete_audio_by_path(
         pass
     return {"detail": "Audio file deleted successfully"}
 
+
+@app.post("/move-asset-audio", response_model=MoveAssetAudioResponse)
+async def move_asset_audio(request: MoveAssetAudioRequest):
+    """
+    Move all audio files from one asset (note) to another.
+
+    - Moves all files from the source asset's folder to the target asset's folder
+    - Renames files on collision (never overwrites)
+    - Removes the source asset's folder if now empty
+    - Returns details of all moved files
+    """
+    try:
+        script = MoveNoteAudioTransactionScriptFactory().create()
+        moved = await script.execute(
+            user_id=str(request.user_id),
+            source_asset_id=str(request.source_asset_id),
+            target_asset_id=str(request.target_asset_id),
+        )
+        return MoveAssetAudioResponse(
+            moved=[MovedFile(**m) for m in moved],
+            count=len(moved),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")
