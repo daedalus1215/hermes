@@ -1,6 +1,7 @@
 from pathlib import Path
 from app.infrastructure.repositories.write import WriteAudioFilesRepository
 from app.shared.path_utils import get_user_path_for_asset
+from .move_note_audio_params import MoveNoteAudioParams
 
 
 class MoveNoteAudioTransactionScript:
@@ -12,9 +13,7 @@ class MoveNoteAudioTransactionScript:
         self.writeAudioFilesRepository = writeAudioFilesRepository
         self.process_folder = Path(process_folder)
 
-    async def execute(
-        self, user_id: str, source_asset_id: str, target_asset_id: str
-    ) -> list[dict]:
+    async def apply(self, params: MoveNoteAudioParams) -> list[dict]:
         """
         Move all audio files from source asset to target asset.
 
@@ -26,10 +25,10 @@ class MoveNoteAudioTransactionScript:
 
         # Resolve source and target directories
         source_dir = get_user_path_for_asset(
-            process_folder, str(user_id), str(source_asset_id)
+            process_folder, str(params.user_id), str(params.source_asset_id)
         )
         target_dir = get_user_path_for_asset(
-            process_folder, str(user_id), str(target_asset_id)
+            process_folder, str(params.user_id), str(params.target_asset_id)
         )
 
         # Path-safety: both must resolve under process_parent
@@ -48,9 +47,9 @@ class MoveNoteAudioTransactionScript:
             )
 
         # Reject self-move
-        if source_asset_id == target_asset_id:
+        if params.source_asset_id == params.target_asset_id:
             raise ValueError(
-                f"Cannot move audio from asset to itself: {source_asset_id}"
+                f"Cannot move audio from asset to itself: {params.source_asset_id}"
             )
 
         # Move the files
